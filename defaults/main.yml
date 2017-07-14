@@ -53,6 +53,6 @@ redis_disabled_commands: []
 #  - DEBUG
 
 # Redis cluster options
-redis_cluster_enabled: yes
+redis_cluster_enabled: "yes"
 redis_cluster_config_file: nodes.conf
 redis_cluster_node_timeout: 5000

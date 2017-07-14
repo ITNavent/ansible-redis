@@ -1,7 +1,7 @@
 # {{ ansible_managed }}
 
 daemonize yes
-pidfile /var/run/redis/{{ redis_daemon }}.pid
+pidfile /var/run/redis/redis-server.pid
 port {{ redis_port }}
 bind {{ redis_bind_interface }}
 
@@ -53,3 +53,7 @@ requirepass {{ redis_requirepass }}
 {% for redis_disabled_command in redis_disabled_commands %}
 rename-command {{ redis_disabled_command }} ""
 {% endfor %}
+
+cluster-enabled {{ redis_cluster_enabled }}
+cluster-config-file {{ redis_cluster_config_file }}
+cluster-node-timeout {{ redis_cluster_node_timeout }}

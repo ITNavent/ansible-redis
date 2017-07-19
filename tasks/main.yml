@@ -1,5 +1,5 @@
 ---
-# Setup/install tasks.
+# Install tasks.
 
 - name: Get build-essential
   become: yes
@@ -94,7 +94,6 @@
     src: ../templates/init.Debian
     dest: /etc/init.d/redis-server
     mode: 0755
-  when: redis_enable_service == True
   tags:
     install
 
@@ -104,7 +103,6 @@
     src: ../templates/redis-server.service
     dest: /lib/systemd/system/redis-server.service
     mode: 0750
-  when: redis_enable_service == True
   tags:
     install
 
@@ -183,6 +181,8 @@
   tags:
     install
 
+# Configure tasks
+
 - name: Configure Redis
   become: yes
   template:
@@ -199,10 +199,9 @@
     name: redis-server
     enabled: yes
     state: started
-  when: redis_enable_service == "yes" and not (
-    redis_somaxconn_configuration_changed.changed == true or
-    redis_overcommit_memory_configuration_changed.changed == true or
-    redis_configuration_changed.changed == true)
+  when: not (redis_somaxconn_configuration_changed.changed == true or
+             redis_overcommit_memory_configuration_changed.changed == true or
+             redis_configuration_changed.changed == true)
   tags:
     configure
 
@@ -212,9 +211,52 @@
     name: redis-server
     enabled: yes
     state: restarted
-  when: redis_enable_service == "yes" and (
-    redis_somaxconn_configuration_changed.changed == true or
-    redis_overcommit_memory_configuration_changed.changed == true or
-    redis_configuration_changed.changed == true)
+  when: redis_somaxconn_configuration_changed.changed == true or
+        redis_overcommit_memory_configuration_changed.changed == true or
+        redis_configuration_changed.changed == true
+  tags:
+    configure
+
+# Cluster tasks
+
+- name: Install Ruby
+  become: yes
+  apt:
+    name: ruby
+    update_cache: yes
+  when: redis_cluster_enabled == "yes"
+
+- name: Install Redis gem
+  become: yes
+  gem:
+    name: redis
+    state: present
+  when: redis_cluster_enabled == "yes"
+
+- name: Verify Redis cluster
+  become: yes
+  shell: >
+    {{ redis_dbdir }}/src/redis-trib.rb check localhost:{{ redis_port }} | grep "All 16384 slots covered."
+  register: cluster_status
+  ignore_errors: True
+  run_once: true
+  when: redis_cluster_enabled == "yes"
+
+- name: Enable Redis cluster
+  become: yes
+  vars:
+    nodes_ips: "{{ groups['redis'] | map('extract', hostvars, ['ansible_ssh_host']) | join(':' ~ redis_port ~ ' ') }}:{{redis_port}}"
+  shell: >
+    echo "yes" | {{redis_dbdir}}/src/redis-trib.rb create --replicas {{ redis_cluster_replicas }} {{ nodes_ips }}
+  run_once: true
+  when: redis_cluster_enabled == "yes" and cluster_status.stdout == ""
+
+- name: Disable Redis
+  become: yes
+  systemd:
+    name: redis-server
+    enabled: no
+    state: stopped
+  when: redis_enable_service == "no"
   tags:
     configure

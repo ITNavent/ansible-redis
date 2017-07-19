@@ -1,14 +1,220 @@
 ---
 # Setup/install tasks.
 
-- name: Ensure Redis is installed.
+- name: Get build-essential
+  become: yes
   apt:
-    name: redis-server
+    name: build-essential
     state: present
+  tags:
+    install
 
-- name: Ensure Redis is configured.
+- name: Get tcl
+  become: yes
+  apt:
+    name: tcl
+    state: present
+  tags:
+    install
+
+- name: Check if Redis is installed
+  stat:
+    path: {{ redis_dbdir }}
+  register: is_redis_installed
+
+- name: Create Redis install directory
+  file:
+    path: {{ redis_installdir }}
+    state: directory
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Get Redis
+  become: yes
+  get_url:
+    url: http://download.redis.io/releases/redis-4.0.0.tar.gz
+    dest: /tmp/redis-4.0.0.tar.gz
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Untar package
+  become: yes
+  unarchive:
+    src: /tmp/redis-4.0.0.tar.gz
+    dest: /tmp
+    copy: no
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Move to install directory
+  command: mv /tmp/redis-4.0.0 {{ redis_dbdir }} creates={{ redis_dbdir}}
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Make Redis
+  make:
+    chdir: {{ redis_dbdir }}
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Make Redis tests
+  make:
+    chdir: {{ redis_dbdir }}
+    target: test
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Install Redis
+  become: yes
+  make:
+    chdir: {{ redis_dbdir }}
+    target: install
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Create link
+  become: yes
+  file:
+    src: /usr/local/bin/redis-server
+    path: /usr/bin/redis-server
+    state: link
+  tags:
+    install
+
+- name: Create init script
+  become: yes
   template:
-    src: redis.conf.j2
+    src: ../templates/init.Debian
+    dest: /etc/init.d/redis-server
+    mode: 0755
+  when: redis_enable_service == True
+  tags:
+    install
+
+- name: Create service file
+  become: yes
+  template:
+    src: ../templates/redis-server.service
+    dest: /lib/systemd/system/redis-server.service
+    mode: 0750
+  when: redis_enable_service == True
+  tags:
+    install
+
+- name: Create log directory
+  become: yes
+  file:
+    path: {{ redis_logdir }}
+    state: directory
+  tags:
+    install
+
+- name: Create run directory
+  become: yes
+  file:
+    path: /var/run/redis
+    state: directory
+  tags:
+    install
+
+- name: Update systemd
+  become: yes
+  systemd:
+    name: redis-server
+    daemon_reload: yes
+  tags:
+    install
+
+- name: Create redis group
+  become: yes
+  group:
+    name: redis
+    state: present
+  tags:
+    install
+
+- name: Create redis user
+  become: yes
+  user:
+    name: redis
+    group: redis
+    state: present
+  tags:
+    install
+
+- name: Configure somaxconn value
+  become: yes
+  sysctl:
+    name: net.core.somaxconn
+    value: 511
+    reload: yes
+    state: present
+  register:
+    redis_somaxconn_configuration_changed
+  tags:
+    install
+
+- name: Configure overcommit_memory value
+  become: yes
+  sysctl:
+    name: vm.overcommit_memory
+    value: 0
+    reload: yes
+    state: present
+  register:
+    redis_overcommit_memory_configuration_changed
+  tags:
+    install
+
+- name: Persist THP support disable
+  become: yes
+  blockinfile:
+    insertbefore: "exit 0"
+    path: /etc/rc.local
+    state: present
+    block: echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  tags:
+    install
+
+- name: Configure Redis
+  become: yes
+  template:
+    src: ../templates/redis.conf.j2
     dest: /etc/redis/redis.conf
-    mode: 0644
-  notify: restart redis
+  register:
+    redis_configuration_changed
+  tags:
+    configure
+
+- name: Enable Redis
+  become: yes
+  systemd:
+    name: redis-server
+    enabled: yes
+    state: started
+  when: redis_enable_service == "yes" and not (
+    redis_somaxconn_configuration_changed.changed == True or
+    redis_overcommit_memory_configuration_changed == True or
+    redis_configuration_changed == True)
+  tags:
+    configure
+
+- name: Restart Redis
+  become: yes
+  systemd:
+    name: redis-server
+    enabled: yes
+    state: restarted
+  when: redis_enable_service == "yes" and (
+    redis_somaxconn_configuration_changed.changed == True or
+    redis_overcommit_memory_configuration_changed == True or
+    redis_configuration_changed == True)
+  tags:
+    configure

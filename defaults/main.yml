@@ -1,4 +1,6 @@
 ---
+redis_version: "4.0.0"
+
 # Permite instalar Redis sin configurarlo como un servicio (Ej de uso, supervisor)
 redis_enable_service: "yes"
 

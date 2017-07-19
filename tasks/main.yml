@@ -33,8 +33,8 @@
 - name: Get Redis
   become: yes
   get_url:
-    url: http://download.redis.io/releases/redis-4.0.0.tar.gz
-    dest: /tmp/redis-4.0.0.tar.gz
+    url: http://download.redis.io/releases/redis-{{ redis_version }}.tar.gz
+    dest: /tmp/redis-{{ redis_version }}.tar.gz
   when: is_redis_installed.stat.exists == False
   tags:
     install
@@ -42,7 +42,7 @@
 - name: Untar package
   become: yes
   unarchive:
-    src: /tmp/redis-4.0.0.tar.gz
+    src: /tmp/redis-{{ redis_version }}.tar.gz
     dest: /tmp
     copy: no
   when: is_redis_installed.stat.exists == False
@@ -50,7 +50,7 @@
     install
 
 - name: Move to install directory
-  command: mv /tmp/redis-4.0.0 {{ redis_dbdir }} creates={{ redis_dbdir}}
+  command: mv /tmp/redis-{{ redis_version }} {{ redis_dbdir }} creates={{ redis_dbdir}}
   when: is_redis_installed.stat.exists == False
   tags:
     install

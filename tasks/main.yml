@@ -19,7 +19,7 @@
 
 - name: Check if Redis is installed
   stat:
-    path: "{{ redis_dbdir }}"
+    path: "{{ redis_dir }}"
   register: is_redis_installed
 
 - name: Create Redis install directory
@@ -50,21 +50,21 @@
     install
 
 - name: Move to install directory
-  command: "mv /tmp/redis-{{ redis_version }} {{ redis_dbdir }} creates={{ redis_dbdir}}"
+  command: "mv /tmp/redis-{{ redis_version }} {{ redis_dir }} creates={{ redis_dir}}"
   when: is_redis_installed.stat.exists == False
   tags:
     install
 
 - name: Make Redis
   make:
-    chdir: "{{ redis_dbdir }}"
+    chdir: "{{ redis_dir }}"
   when: is_redis_installed.stat.exists == False
   tags:
     install
 
 - name: Make Redis tests
   make:
-    chdir: "{{ redis_dbdir }}"
+    chdir: "{{ redis_dir }}"
     target: test
   when: is_redis_installed.stat.exists == False
   tags:
@@ -73,7 +73,7 @@
 - name: Install Redis
   become: yes
   make:
-    chdir: "{{ redis_dbdir }}"
+    chdir: "{{ redis_dir }}"
     target: install
   when: is_redis_installed.stat.exists == False
   tags:
@@ -236,7 +236,7 @@
 - name: Verify Redis cluster
   become: yes
   shell: >
-    {{ redis_dbdir }}/src/redis-trib.rb check localhost:{{ redis_port }} | grep "All 16384 slots covered."
+    {{ redis_dir }}/src/redis-trib.rb check localhost:{{ redis_port }} | grep "All 16384 slots covered."
   register: cluster_status
   ignore_errors: True
   run_once: true
@@ -247,7 +247,7 @@
   vars:
     nodes: "{{ ansible_play_hosts | map('extract', hostvars, ['ansible_ssh_host']) | join(':' ~ redis_port ~ ' ') }}:{{redis_port}}"
   shell: >
-    echo "yes" | {{redis_dbdir}}/src/redis-trib.rb create --replicas {{ redis_cluster_replicas }} {{ nodes }}
+    echo "yes" | {{redis_dir}}/src/redis-trib.rb create --replicas {{ redis_cluster_replicas }} {{ nodes }}
   run_once: true
   when: redis_cluster_enabled == "yes" and cluster_status.stdout == ""
 

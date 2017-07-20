@@ -1,63 +1,148 @@
 ---
+# Redis version to install
 redis_version: "4.0.0"
 
-# Permite instalar Redis sin configurarlo como un servicio (Ej de uso, supervisor)
+# Enable Redis as a service (systemd)
 redis_enable_service: "yes"
 
+# Default Redis installation directory
 redis_installdir: /etc/redis
 
-redis_daemonize: "yes"
+# Includes
+redis_includes: []
 
-redis_port: 6379
+# Modules
+redis_modules: []
+
+# Network
 redis_bind_interface: 0.0.0.0
+redis_protected_mode: "yes"
+redis_port: 6379
+redis_tcp_backlog: 511
 redis_unixsocket: ''
+redis_unixsocketperm: ''
 redis_timeout: 300
+redis_tcp_keepalive: 300
 
-redis_logdir: /var/log/redis
+# General
+redis_daemonize: "yes"
+redis_supervised: "no"
+redis_piddir: "/var/run"
+redis_pidfile: "{{ redis_piddir }}/redis_{{ redis_port }}.pid"
 redis_loglevel: "notice"
+redis_logdir: "/var/log/redis"
 redis_logfile: "{{ redis_logdir }}/redis-server.log"
-
+redis_syslog_enabled: "no"
+redis_syslog_ident: "redis"
+redis_syslog_facility: "local0"
 redis_databases: 16
+redis_always_show_logo: "yes"
 
-# Set to an empty set to disable persistence (saving the DB to disk).
+# Snapshotting
 redis_save: []
-
+redis_stop_writes_on_bgsave_error: "yes"
 redis_rdbcompression: "yes"
-redis_dbfilename: dump.rdb
-redis_dbdir: /var/lib/redis
+redis_rdbchecksum: "yes"
+redis_dbfilename: "dump.rdb"
+redis_dir: "/var/lib/redis"
 
+# Replication
+redis_slaveof_masterip: ""
+redis_slaveof_masterport: ""
+redis_masterauth: ""
+redis_slave_serve_stale_data: "yes"
+redis_slave_read_only: "yes"
+redis_repl_diskless_sync: "no"
+redis_repl_diskless_sync_delay: 5
+redis_repl_ping_slave_period: 10
+redis_repl_timeout: 60
+redis_repl_disable_tcp_nodelay: "no"
+redis_repl_backlog_size: "1mb"
+redis_repl_backlog_ttl: 3600
+redis_slave_priority: 100
+redis_min_slaves_to_write: 0
+redis_min_slaves_max_lag: 10
+redis_slave_announce_ip: ""
+redis_slave_announce_port: ""
+
+# Security
+redis_requirepass: ""
+redis_disabled_commands: []
+
+# Clients
+redis_maxclients: 10000
+
+# Memory Management
 redis_maxmemory: 0
 redis_maxmemory_policy: "noeviction"
 redis_maxmemory_samples: 5
 
+# Lazy freeing
+redis_lazyfree_lazy_eviction: "no"
+redis_lazyfree_lazy_expire: "no"
+redis_lazyfree_lazy_server_del: "no"
+redis_slave_lazy_flush: "no"
+
+# Append only mode
 redis_appendonly: "no"
+redis_appendfilename: "appendonly.aof"
 redis_appendfsync: "everysec"
+redis_no_appendfsync_on_rewrite: "no"
+redis_auto_aof_rewrite_percentage: 100
+redis_auto_aof_rewrite_min_size: "64mb"
+redis_aof_load_truncated: "yes"
+redis_aof_use_rdb_preamble: "no"
 
-# Add extra include files for local configuration/overrides.
-redis_includes: []
+# Lua scripting
+redis_lua_time_limit: 5000
 
-# Require authentication to Redis with a password.
-redis_requirepass: ""
-
-# Disable certain Redis commands for security reasons.
-redis_disabled_commands: []
-#  - FLUSHDB
-#  - FLUSHALL
-#  - KEYS
-#  - PEXPIRE
-#  - DEL
-#  - CONFIG
-#  - SHUTDOWN
-#  - BGREWRITEAOF
-#  - BGSAVE
-#  - SAVE
-#  - SPOP
-#  - SREM
-#  - RENAME
-#  - DEBUG
-
-# Redis cluster options
+# Cluster
 redis_cluster_enabled: "no"
-redis_cluster_config_file: nodes.conf
-redis_cluster_node_timeout: 5000
 redis_cluster_replicas: 0
+redis_cluster_config_file: "nodes_{{ redis_port }}.conf"
+redis_cluster_node_timeout: 15000
+redis_cluster_slave_validity_factor: 10
+redis_cluster_migration_barrier: 1
+redis_cluster_require_full_coverage: "yes"
+
+# Cluster Docker/NAT support
+redis_cluster_announce_ip: ""
+redis_cluster_announce_port: ""
+redis_cluster_announce_bus_port: ""
+
+# Slow log
+redis_slowlog_log_slower_than: 10000
+redis_slowlog_max_len: 128
+
+# Latency monitor
+redis_latency_monitor_threshold: 0
+
+# Event notification
+redis_notify_keyspace_events: ""
+
+# Advanced config
+redis_hash_max_ziplist_entries: 512
+redis_hash_max_ziplist_value: 64
+redis_list_max_ziplist_size: -2
+redis_list_compress_depth: 0
+redis_set_max_intset_entries: 512
+redis_zset_max_ziplist_entries: 128
+redis_zset_max_ziplist_value: 64
+redis_hll_sparse_max_bytes: 3000
+redis_activerehashing: "yes"
+redis_client_output_buffer_limits:
+ - "normal 0 0 0"
+ - "slave 256mb 64mb 60"
+ - "pubsub 32mb 8mb 60"
+redis_hz: 10
+redis_aof_rewrite_incremental_fsync: "yes"
+redis_lfu_log_factor: 10
+redis_lfu_decay_time: 1
+
+# Active defragmentation
+redis_activedefrag: no
+redis_active_defrag_ignore_bytes: "100mb"
+redis_active_defrag_threshold_lower: 10
+redis_active_defrag_threshold_upper: 100
+redis_active_defrag_cycle_min: 25
+redis_active_defrag_cycle_max: 75

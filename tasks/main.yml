@@ -245,7 +245,7 @@
 - name: Enable Redis cluster
   become: yes
   vars:
-    nodes: "{{ ansible_play_hosts | map('extract', hostvars, ['ansible_fqdn']) | join('.navent.biz:' ~ redis_port ~ ' ') }}.navent.biz:{{redis_port}}"
+    nodes: "{{ ansible_play_hosts | map('extract', hostvars, ['ansible_ssh_host']) | join(':' ~ redis_port ~ ' ') }}:{{redis_port}}"
   shell: >
     echo "yes" | {{redis_dbdir}}/src/redis-trib.rb create --replicas {{ redis_cluster_replicas }} {{ nodes }}
   run_once: true

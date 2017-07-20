@@ -140,7 +140,7 @@ redis_lfu_log_factor: 10
 redis_lfu_decay_time: 1
 
 # Active defragmentation
-redis_activedefrag: no
+redis_activedefrag: "no"
 redis_active_defrag_ignore_bytes: "100mb"
 redis_active_defrag_threshold_lower: 10
 redis_active_defrag_threshold_upper: 100

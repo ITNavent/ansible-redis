@@ -1,29 +1,262 @@
 ---
-# Variable setup.
-- name: Include OS-specific variables.
-  include_vars: "{{ ansible_os_family }}.yml"
+# Install tasks.
 
-- name: Define redis_package.
-  set_fact:
-    redis_package: "{{ __redis_package }}"
-  when: redis_package is not defined
+- name: Get build-essential
+  become: yes
+  apt:
+    name: build-essential
+    state: present
+  tags:
+    install
 
-# Setup/install tasks.
-- include: setup-RedHat.yml
-  when: ansible_os_family == 'RedHat'
+- name: Get tcl
+  become: yes
+  apt:
+    name: tcl
+    state: present
+  tags:
+    install
 
-- include: setup-Debian.yml
-  when: ansible_os_family == 'Debian'
+- name: Check if Redis is installed
+  stat:
+    path: "{{ redis_dir }}"
+  register: is_redis_installed
 
-- include: setup-Archlinux.yml
-  when: ansible_os_family == 'Archlinux'
+- name: Create Redis install directory
+  file:
+    path: "{{ redis_installdir }}"
+    state: directory
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
 
-- name: Ensure Redis is configured.
+- name: Get Redis
+  become: yes
+  get_url:
+    url: "http://download.redis.io/releases/redis-{{ redis_version }}.tar.gz"
+    dest: "/tmp/redis-{{ redis_version }}.tar.gz"
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Untar package
+  become: yes
+  unarchive:
+    src: "/tmp/redis-{{ redis_version }}.tar.gz"
+    dest: /tmp
+    copy: no
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Move to install directory
+  command: "mv /tmp/redis-{{ redis_version }} {{ redis_dir }} creates={{ redis_dir}}"
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Make Redis
+  make:
+    chdir: "{{ redis_dir }}"
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Make Redis tests
+  make:
+    chdir: "{{ redis_dir }}"
+    target: test
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Install Redis
+  become: yes
+  make:
+    chdir: "{{ redis_dir }}"
+    target: install
+  when: is_redis_installed.stat.exists == False
+  tags:
+    install
+
+- name: Create link
+  become: yes
+  file:
+    src: /usr/local/bin/redis-server
+    path: /usr/bin/redis-server
+    state: link
+  tags:
+    install
+
+- name: Create init script
+  become: yes
   template:
-    src: redis.conf.j2
-    dest: "{{ redis_conf_path }}"
-    mode: 0644
-  notify: restart redis
+    src: ../templates/init.Debian
+    dest: /etc/init.d/redis-server
+    mode: 0755
+  tags:
+    install
 
-- name: Ensure Redis is running and enabled on boot.
-  service: "name={{ redis_daemon }} state=started enabled=yes"
+- name: Create service file
+  become: yes
+  template:
+    src: ../templates/redis-server.service
+    dest: /lib/systemd/system/redis-server.service
+    mode: 0750
+  tags:
+    install
+
+- name: Create log directory
+  become: yes
+  file:
+    path: "{{ redis_logdir }}"
+    state: directory
+  tags:
+    install
+
+- name: Create run directory
+  become: yes
+  file:
+    path: /var/run/redis
+    state: directory
+  tags:
+    install
+
+- name: Update systemd
+  become: yes
+  systemd:
+    name: redis-server
+    daemon_reload: yes
+  tags:
+    install
+
+- name: Create redis group
+  become: yes
+  group:
+    name: redis
+    state: present
+  tags:
+    install
+
+- name: Create redis user
+  become: yes
+  user:
+    name: redis
+    group: redis
+    state: present
+  tags:
+    install
+
+- name: Configure somaxconn value
+  become: yes
+  sysctl:
+    name: net.core.somaxconn
+    value: 512
+    reload: yes
+    state: present
+  register:
+    redis_somaxconn_configuration_changed
+  tags:
+    install
+
+- name: Configure overcommit_memory value
+  become: yes
+  sysctl:
+    name: vm.overcommit_memory
+    value: 1
+    reload: yes
+    state: present
+  register:
+    redis_overcommit_memory_configuration_changed
+  tags:
+    install
+
+- name: Persist THP support disable
+  become: yes
+  blockinfile:
+    insertbefore: "exit 0"
+    path: /etc/rc.local
+    state: present
+    block: echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  tags:
+    install
+
+# Configure tasks
+
+- name: Configure Redis
+  become: yes
+  template:
+    src: ../templates/redis.conf.j2
+    dest: /etc/redis/redis.conf
+  register:
+    redis_configuration_changed
+  tags:
+    configure
+
+- name: Enable Redis
+  become: yes
+  systemd:
+    name: redis-server
+    enabled: yes
+    state: started
+  when: not (redis_somaxconn_configuration_changed.changed == true or
+             redis_overcommit_memory_configuration_changed.changed == true or
+             redis_configuration_changed.changed == true)
+  tags:
+    configure
+
+- name: Restart Redis
+  become: yes
+  systemd:
+    name: redis-server
+    enabled: yes
+    state: restarted
+  when: redis_somaxconn_configuration_changed.changed == true or
+        redis_overcommit_memory_configuration_changed.changed == true or
+        redis_configuration_changed.changed == true
+  tags:
+    configure
+
+# Cluster tasks
+
+- name: Install Ruby
+  become: yes
+  apt:
+    name: ruby
+    update_cache: yes
+  when: redis_cluster_enabled == "yes"
+
+- name: Install Redis gem
+  become: yes
+  gem:
+    name: redis
+    state: present
+  when: redis_cluster_enabled == "yes"
+
+- name: Verify Redis cluster
+  become: yes
+  shell: >
+    {{ redis_dir }}/src/redis-trib.rb check localhost:{{ redis_port }} | grep "All 16384 slots covered."
+  register: cluster_status
+  ignore_errors: True
+  run_once: true
+  when: redis_cluster_enabled == "yes"
+
+- name: Enable Redis cluster
+  become: yes
+  vars:
+    nodes: "{{ ansible_play_hosts | map('extract', hostvars, ['ansible_ssh_host']) | join(':' ~ redis_port ~ ' ') }}:{{redis_port}}"
+  shell: >
+    echo "yes" | {{redis_dir}}/src/redis-trib.rb create --replicas {{ redis_cluster_replicas }} {{ nodes }}
+  run_once: true
+  when: redis_cluster_enabled == "yes" and cluster_status.stdout == ""
+
+- name: Disable Redis
+  become: yes
+  systemd:
+    name: redis-server
+    enabled: no
+    state: stopped
+  when: redis_enable_service == "no"
+  tags:
+    configure

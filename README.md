@@ -48,7 +48,7 @@ Snapshotting configuration; setting values in this list will save the database t
 
     redis_rdbcompression: "yes"
     redis_dbfilename: dump.rdb
-    redis_dbdir: /var/lib/redis
+    redis_dir: /var/lib/redis
 
 Database compression and location configuration.
 

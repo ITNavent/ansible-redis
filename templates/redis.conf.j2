@@ -1090,7 +1090,9 @@ latency-monitor-threshold {{ redis_latency_monitor_threshold }}
 #  this feature and the feature has some overhead. Note that if you don't
 #  specify at least one of K or E, no events will be delivered.
 
+{% if redis_notify_keyspace_events %}
 notify-keyspace-events {{ redis_notify_keyspace_events }}
+{% endif %}
 
 ############################### ADVANCED CONFIG ###############################
 

@@ -146,3 +146,5 @@ redis_active_defrag_threshold_lower: 10
 redis_active_defrag_threshold_upper: 100
 redis_active_defrag_cycle_min: 25
 redis_active_defrag_cycle_max: 75
+
+os_file_descriptor: "{{ redis_maxclients }}"

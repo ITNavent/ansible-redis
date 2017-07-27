@@ -192,6 +192,19 @@
     redis_configuration_changed
   tags:
     configure
+  when: "redis_version.split('.')[0] >= '4'"
+
+- name: Configure Redis
+  become: yes
+  template:
+    src: ../templates/redis.old.conf.j2
+    dest: /etc/redis/redis.conf
+  register:
+    redis_configuration_changed
+  tags:
+    configure
+  when: "redis_version.split('.')[0] < '4'"
+
 
 - name: Enable Redis
   become: yes
@@ -258,5 +271,11 @@
     enabled: no
     state: stopped
   when: redis_enable_service == "no"
+  tags:
+    configure
+
+- name: change value of file descriptor
+  become: yes
+  shell: "ulimit -n {{os_file_descriptor}}"
   tags:
     configure

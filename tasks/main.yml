@@ -260,3 +260,10 @@
   when: redis_enable_service == "no"
   tags:
     configure
+
+---
+- name: change value of file descriptor
+  become: yes
+  shell: "ulimit -n {{os_file_descriptor}}"
+  tags:
+    configure

@@ -183,10 +183,13 @@
 
 # Configure tasks
 
+- set_fact:
+    config_file: "../templates/redis.conf{{ '' if redis_version == '4.0.0' else ('.' + redis_version[0:3]) }}.j2"
+
 - name: Configure Redis
   become: yes
   template:
-    src: ../templates/redis.conf.j2
+    src: "{{ config_file }}"
     dest: /etc/redis/redis.conf
   register:
     redis_configuration_changed

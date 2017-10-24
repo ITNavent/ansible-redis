@@ -62,13 +62,13 @@
   tags:
     install
 
-- name: Make Redis tests
-  make:
-    chdir: "{{ redis_dir }}"
-    target: test
-  when: is_redis_installed.stat.exists == False
-  tags:
-    install
+#- name: Make Redis tests
+#  make:
+#    chdir: "{{ redis_dir }}"
+#    target: test
+#  when: is_redis_installed.stat.exists == False
+#  tags:
+#    install
 
 - name: Install Redis
   become: yes

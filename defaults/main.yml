@@ -148,3 +148,9 @@ redis_active_defrag_threshold_lower: 10
 redis_active_defrag_threshold_upper: 100
 redis_active_defrag_cycle_min: 25
 redis_active_defrag_cycle_max: 75
+
+# Sentinel
+redis_sentinel: no
+redis_sentinel_port: 26379
+redis_sentinel_dir: /tmp
+redis_sentinel_masters: []

@@ -182,7 +182,17 @@
   become: yes
   template:
     src: "{{ config_file }}"
-    dest: /etc/redis/redis.conf
+    dest: "{{ redis_installdir }}/redis.conf"
+  register:
+    redis_configuration_changed
+  tags:
+    configure
+
+- name: Configure Redis Sentinel
+  become: yes
+  template:
+    src: ../templates/sentinel.conf.j2
+    dest: "{{ redis_installdir }}/sentinel.conf"
   register:
     redis_configuration_changed
   tags:

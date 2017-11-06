@@ -193,6 +193,8 @@
   template:
     src: ../templates/sentinel.conf.j2
     dest: "{{ redis_installdir }}/sentinel.conf"
+  when:
+    redis_sentinel
   register:
     redis_configuration_changed
   tags:

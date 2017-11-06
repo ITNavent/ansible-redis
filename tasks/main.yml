@@ -98,6 +98,17 @@
   tags:
     install
 
+- name: Create sentinel service file
+  become: yes
+  template:
+    src: ../templates/redis-server.service
+    dest: /lib/systemd/system/redis-server.service
+    mode: 0750
+  when:
+    redis_sentinel
+  tags:
+    install
+
 - name: Create log directory
   become: yes
   file:
@@ -119,6 +130,16 @@
   systemd:
     name: redis-server
     daemon_reload: yes
+  tags:
+    install
+
+- name: Update sentinel systemd
+  become: yes
+  systemd:
+    name: redis-sentinel
+    daemon_reload: yes
+  when:
+    redis_sentinel
   tags:
     install
 
@@ -208,7 +229,19 @@
     state: started
   when: not (redis_somaxconn_configuration_changed.changed == true or
              redis_overcommit_memory_configuration_changed.changed == true or
-             redis_configuration_changed.changed == true)
+             redis_configuration_changed.changed == true) and not redis_sentinel
+  tags:
+    configure
+
+- name: Enable Redis sentinel
+  become: yes
+  systemd:
+    name: redis-sentinel
+    enabled: yes
+    state: started
+  when: not (redis_somaxconn_configuration_changed.changed == true or
+             redis_overcommit_memory_configuration_changed.changed == true or
+             redis_configuration_changed.changed == true) and redis_sentinel
   tags:
     configure
 
@@ -218,9 +251,21 @@
     name: redis-server
     enabled: yes
     state: restarted
-  when: redis_somaxconn_configuration_changed.changed == true or
+  when: (redis_somaxconn_configuration_changed.changed == true or
         redis_overcommit_memory_configuration_changed.changed == true or
-        redis_configuration_changed.changed == true
+        redis_configuration_changed.changed == true) and not redis_sentinel
+  tags:
+    configure
+
+- name: Restart Redis sentinel
+  become: yes
+  systemd:
+    name: redis-sentinel
+    enabled: yes
+    state: restarted
+  when: (redis_somaxconn_configuration_changed.changed == true or
+        redis_overcommit_memory_configuration_changed.changed == true or
+        redis_configuration_changed.changed == true) and redis_sentinel
   tags:
     configure
 

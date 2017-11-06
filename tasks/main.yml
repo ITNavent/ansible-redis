@@ -101,8 +101,8 @@
 - name: Create sentinel service file
   become: yes
   template:
-    src: ../templates/redis-server.service
-    dest: /lib/systemd/system/redis-server.service
+    src: ../templates/redis-sentinel.service
+    dest: /lib/systemd/system/redis-sentinel.service
     mode: 0750
   when:
     redis_sentinel

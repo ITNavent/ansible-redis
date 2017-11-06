@@ -104,7 +104,7 @@ sentinel monitor {{ master.name }} {{ master.ip }} {{ master.port | default(6379
 # sentinel auth-pass mymaster MySUPER--secret-0123passw0rd
 
 {% for master in redis_sentinel_masters %}
-{% if master.password %}
+{% if master.password is defined %}
 sentinel auth-pass {{ master.name }} {{ master.password }}
 {% endif %}
 {% endfor %}
@@ -201,7 +201,7 @@ sentinel failover-timeout {{ master.name }} {{ master.failover_timeout | default
 # sentinel notification-script mymaster /var/redis/notify.sh
 
 {% for master in redis_sentinel_masters %}
-{% if master.notification_script %}
+{% if master.notification_script is defined %}
 sentinel notification-script {{ master.name }} {{ master.notification_script }}
 {% endif %}
 {% endfor %}
@@ -232,7 +232,7 @@ sentinel notification-script {{ master.name }} {{ master.notification_script }}
 # sentinel client-reconfig-script mymaster /var/redis/reconfig.sh
 
 {% for master in redis_sentinel_masters %}
-{% if master.client_reconfig_script %}
+{% if master.client_reconfig_script is defined %}
 sentinel client-reconfig-script {{ master.name }} {{ master.client_reconfig_script }}
 {% endif %}
 {% endfor %}

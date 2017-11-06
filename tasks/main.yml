@@ -98,6 +98,17 @@
   tags:
     install
 
+- name: Create sentinel init script
+  become: yes
+  template:
+    src: ../templates/init-sentinel.Debian
+    dest: /etc/init.d/redis-sentinel
+    mode: 0755
+  when:
+    redis_sentinel
+  tags:
+    install
+
 - name: Create service file
   become: yes
   template:

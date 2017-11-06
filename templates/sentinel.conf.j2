@@ -47,11 +47,11 @@ port {{ redis_sentinel_port }}
 #
 # sentinel announce-ip 1.2.3.4
 
-{% if redis_sentinel_announce_ip %}
+{% if redis_sentinel_announce_ip is defined %}
 sentinel announce-ip {{ redis_sentinel_announce_ip }}
 {% endif %}
 
-{% if redis_sentinel_announce_port %}
+{% if redis_sentinel_announce_port is defined %}
 sentinel announce-port {{ redis_sentinel_announce_port }}
 {% endif %}
 

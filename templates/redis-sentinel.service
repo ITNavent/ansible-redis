@@ -1,12 +1,13 @@
 [Unit]
 Description=Advanced key-value store
 After=network.target
-Documentation=http://redis.io/documentation, man:redis-server(1)
+Documentation=http://redis.io/documentation, man:redis-sentinel(1)
 
 [Service]
 Type=forking
 ExecStartPre=/bin/echo never > /sys/kernel/mm/transparent_hugepage/enabled
-ExecStart=/usr/bin/redis-server {{ redis_installdir }}/{{ 'sentinel' if redis_sentinel else 'redis'  }}.conf {{ '--sentinel' if redis_sentinel else '' }}
+ExecStart=/usr/bin/redis-sentinel {{ redis_installdir }}/sentinel.conf --daemonize no
+ExecStop=/usr/bin/redis-shutdown redis-sentinel
 PIDFile={{ redis_pidfile }}
 TimeoutStopSec=0
 Restart=always
@@ -30,4 +31,3 @@ ReadWriteDirectories=-{{ redis_installdir }}
 
 [Install]
 WantedBy=multi-user.target
-Alias=redis.service

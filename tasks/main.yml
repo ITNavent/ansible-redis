@@ -80,12 +80,32 @@
   tags:
     install
 
+- name: Create sentinel link
+  become: yes
+  file:
+    src: /usr/local/bin/redis-sentinel
+    path: /usr/bin/redis-sentinel
+    state: link
+  tags:
+    install
+
 - name: Create init script
   become: yes
   template:
     src: ../templates/init.Debian
     dest: /etc/init.d/redis-server
     mode: 0755
+  tags:
+    install
+
+- name: Create sentinel init script
+  become: yes
+  template:
+    src: ../templates/init-sentinel.Debian
+    dest: /etc/init.d/redis-sentinel
+    mode: 0755
+  when:
+    redis_sentinel
   tags:
     install
 
@@ -119,6 +139,16 @@
   systemd:
     name: redis-server
     daemon_reload: yes
+  tags:
+    install
+
+- name: Update sentinel systemd
+  become: yes
+  systemd:
+    name: redis-sentinel
+    daemon_reload: yes
+  when:
+    redis_sentinel
   tags:
     install
 
@@ -182,7 +212,19 @@
   become: yes
   template:
     src: "{{ config_file }}"
-    dest: /etc/redis/redis.conf
+    dest: "{{ redis_installdir }}/redis.conf"
+  register:
+    redis_configuration_changed
+  tags:
+    configure
+
+- name: Configure Redis Sentinel
+  become: yes
+  template:
+    src: ../templates/sentinel.conf.j2
+    dest: "{{ redis_installdir }}/sentinel.conf"
+  when:
+    redis_sentinel
   register:
     redis_configuration_changed
   tags:
@@ -196,7 +238,19 @@
     state: started
   when: not (redis_somaxconn_configuration_changed.changed == true or
              redis_overcommit_memory_configuration_changed.changed == true or
-             redis_configuration_changed.changed == true)
+             redis_configuration_changed.changed == true) and not redis_sentinel
+  tags:
+    configure
+
+- name: Enable Redis sentinel
+  become: yes
+  systemd:
+    name: redis-sentinel
+    enabled: yes
+    state: started
+  when: not (redis_somaxconn_configuration_changed.changed == true or
+             redis_overcommit_memory_configuration_changed.changed == true or
+             redis_configuration_changed.changed == true) and redis_sentinel
   tags:
     configure
 
@@ -206,9 +260,21 @@
     name: redis-server
     enabled: yes
     state: restarted
-  when: redis_somaxconn_configuration_changed.changed == true or
+  when: (redis_somaxconn_configuration_changed.changed == true or
         redis_overcommit_memory_configuration_changed.changed == true or
-        redis_configuration_changed.changed == true
+        redis_configuration_changed.changed == true) and not redis_sentinel
+  tags:
+    configure
+
+- name: Restart Redis sentinel
+  become: yes
+  systemd:
+    name: redis-sentinel
+    enabled: yes
+    state: restarted
+  when: (redis_somaxconn_configuration_changed.changed == true or
+        redis_overcommit_memory_configuration_changed.changed == true or
+        redis_configuration_changed.changed == true) and redis_sentinel
   tags:
     configure
 

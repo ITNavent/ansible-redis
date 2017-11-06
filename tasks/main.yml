@@ -80,6 +80,15 @@
   tags:
     install
 
+- name: Create sentinel link
+  become: yes
+  file:
+    src: /usr/local/bin/redis-sentinel
+    path: /usr/bin/redis-sentinel
+    state: link
+  tags:
+    install
+
 - name: Create init script
   become: yes
   template:

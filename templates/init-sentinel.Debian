@@ -12,19 +12,18 @@
 ### END INIT INFO
 
 
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/usr/bin/redis-server
-DAEMON_ARGS="{{ redis_installdir }}/redis.conf --sentinel"
-NAME=redis-server
-DESC=redis-server
-
 RUNDIR=/var/run/redis
 PIDFILE=$RUNDIR/redis-sentinel.pid
 LOGDIR=/var/log/redis
 LOGFILE=$LOGDIR/redis-sentinel.log
-
 CONFDIR={{ redis_installdir }}
-CONFFILE=$CONFDIR/redis.conf
+CONFFILE=$CONFDIR/sentinel.conf
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/redis-server
+DAEMON_ARGS="{{ redis_installdir }}/sentinel.conf --sentinel"
+NAME=redis-server
+DESC=redis-server
 
 test -x $DAEMON || exit 0
 

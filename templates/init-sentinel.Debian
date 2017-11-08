@@ -20,7 +20,11 @@ DESC=redis-server
 
 RUNDIR=/var/run/redis
 PIDFILE=$RUNDIR/redis-sentinel.pid
-LOGFILE=/var/log/redis/redis-sentinel.log
+LOGDIR=/var/log/redis
+LOGFILE=$LOGDIR/redis-sentinel.log
+
+CONFDIR={{ redis_installdir }}
+CONFFILE=$CONFDIR/redis.conf
 
 test -x $DAEMON || exit 0
 
@@ -44,11 +48,18 @@ case "$1" in
   start)
 	echo -n "Starting $DESC: "
 	mkdir -p $RUNDIR
+	mkdir -p $LOGDIR
+
 	touch $PIDFILE
 	touch $LOGFILE
+
 	chown redis:redis $RUNDIR $PIDFILE
-	chown redis:redis $LOGFILE
+	chown redis:redis $LOGDIR $LOGFILE
+	chown redis:redis $CONFDIR $CONFFILE
+
 	chmod 755 $RUNDIR
+	chmod 777 $LOGDIR $LOGFILE
+	chmod 777 $CONFDIR $CONFFILE
 
 	if [ -n "$ULIMIT" ]
 	then

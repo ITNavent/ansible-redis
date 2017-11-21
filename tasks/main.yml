@@ -95,6 +95,8 @@
     src: ../templates/init.Debian
     dest: /etc/init.d/redis-server
     mode: 0755
+  when:
+    not redis_sentinel
   tags:
     install
 
@@ -115,6 +117,8 @@
     src: ../templates/redis-server.service
     dest: /lib/systemd/system/redis-server.service
     mode: 0750
+  when:
+    not redis_sentinel
   tags:
     install
 
@@ -139,6 +143,18 @@
   systemd:
     name: redis-server
     daemon_reload: yes
+  when:
+    not redis_sentinel
+  tags:
+    install
+
+- name: Update systemd
+  become: yes
+  systemd:
+    name: redis-server
+    daemon_reload: yes
+  when:
+    not redis_sentinel
   tags:
     install
 

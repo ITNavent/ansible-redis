@@ -2,3 +2,4 @@
 tests/test.sh
 .idea
 *.iml
+/.project

@@ -257,7 +257,7 @@
     redis_configuration_changed
   tags:
     configure
-  when: "redis_version.split('.')[0] < '4'"
+  when: "redis_version.split('.')[0] == '3' and redis_version.split('.')[1] >= '2'"
 
 
 - name: Enable Redis

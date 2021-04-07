@@ -212,6 +212,7 @@
 - name: Persist THP support disable
   become: yes
   blockinfile:
+    create: yes
     insertbefore: "exit 0"
     path: /etc/rc.local
     state: present
